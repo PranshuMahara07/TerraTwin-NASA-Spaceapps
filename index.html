@@ -98,7 +98,7 @@
     border: 1px solid var(--gold); border-radius: 12px; padding: 9px 16px;
   }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #0d112a !important; color: #f8f9fa !important; border: 1.5px solid var(--cyan) !important; border-radius: 10px !important; }
-  .leaflet-tooltip.analog-label { background: rgba(8,6,24,0.92); border: 1px solid var(--cyan); color: #fff; font-weight: 800; font-size: 10.5px; border-radius: 6px; padding: 2px 6px; }
+  .leaflet-tooltip.analog-label { background: rgba(8,6,24,0.95); border: 1.5px solid var(--emerald); color: #fff; font-weight: 800; font-size: 11px; border-radius: 8px; padding: 5px 9px; box-shadow: 0 4px 14px rgba(0,0,0,0.85); }
   .twin-hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .hero-space { background: linear-gradient(135deg, rgba(255,190,11,0.18), rgba(251,86,7,0.18)); border: 2px solid var(--gold); border-radius: 12px; padding: 12px 16px; }
   .hero-earth { background: linear-gradient(135deg, rgba(0,255,135,0.18), rgba(0,242,254,0.18)); border: 2px solid var(--emerald); border-radius: 12px; padding: 12px 16px; }
@@ -212,10 +212,11 @@
         </div>
 
         <div class="legend-floating-box">
-          <span><i class="leg-dot" style="background:#00ff87;box-shadow:0 0 8px #00ff87;"></i>Active Selected Site</span>
+          <span><i class="leg-dot" style="background:#00ff87;box-shadow:0 0 8px #00ff87;"></i>Active Selected Point</span>
           <span><i class="leg-dot" style="background:#ffbe0b;box-shadow:0 0 8px #ffbe0b;"></i>Brand-New Candidate</span>
           <span><i class="leg-dot" style="background:#00f2fe;box-shadow:0 0 8px #00f2fe;"></i>Prior Agency Analog</span>
           <span><i class="leg-dot" style="background:#c084fc;box-shadow:0 0 8px #c084fc;"></i>Global Benchmark</span>
+          <span style="color:var(--muted);font-weight:700;">💡 Hover cursor over any point to view name</span>
         </div>
 
         <div class="time-floating-bar">
@@ -466,7 +467,7 @@ function switchPage(idx) {
       setTimeout(() => {
         leafletMap.invalidateSize();
         const s = rankedSites[selectedIdx];
-        if (s) leafletMap.setView([s.lat, s.lon], Math.max(leafletMap.getZoom(), 6));
+        if (s) leafletMap.setView([s.lat, s.lon], Math.max(leafletMap.getZoom(), 7));
       }, 60);
     } else if (mapView === '3D' && globeInstance) {
       const container = document.getElementById('globeContainer');
@@ -485,6 +486,9 @@ function switchPage(idx) {
   }
 }
 
+// ============================================================================
+// PURE POINT-AND-RING 3D GLOBE: ZERO PERMANENT TEXT, HOVER-ONLY SITE NAMES
+// ============================================================================
 function initGlobe() {
   const container = document.getElementById('globeContainer');
   try {
@@ -495,38 +499,31 @@ function initGlobe() {
       .showAtmosphere(true)
       .atmosphereColor('#00f2fe')
       .atmosphereAltitude(0.18)
+      // Surface-locked pins for all 16 sites; name ONLY appears when cursor hovers over the point
       .pointsData([])
       .pointLat(d => d.lat)
       .pointLng(d => d.lon)
-      .pointAltitude(d => d.rank === (selectedIdx + 1) ? 0.065 : 0.025)
-      .pointRadius(d => d.rank === (selectedIdx + 1) ? 0.55 : 0.36)
+      .pointAltitude(d => d.rank === (selectedIdx + 1) ? 0.025 : 0.010)
+      .pointRadius(d => d.rank === (selectedIdx + 1) ? 0.62 : 0.38)
       .pointColor(d => getTierColor(d, d.rank === (selectedIdx + 1)))
-      .pointResolution(16)
+      .pointResolution(24)
       .pointLabel(d => `
-        <div style="background:rgba(10,8,28,0.95);border:2px solid ${getTierColor(d, d.rank===(selectedIdx+1))};padding:8px 12px;border-radius:10px;color:#fff;font-family:'Segoe UI',sans-serif;">
-          <div style="font-size:12.5px;font-weight:900;color:${getTierColor(d, d.rank===(selectedIdx+1))};">#${d.rank} ${d.name}</div>
-          <div style="font-size:11px;margin-top:3px;">🎯 Match: <b>${d.score}%</b> | 🌟 Status: <b>${d.tier}</b></div>
-          <div style="font-size:11px;">☀️ Solar Flux: <b>${d.activeFlux} W/m²</b> | ⛰️ Elev: <b>${d.elev} m</b></div>
+        <div style="background:rgba(10,8,28,0.96);border:2px solid ${getTierColor(d, d.rank===(selectedIdx+1))};padding:9px 13px;border-radius:10px;color:#fff;font-family:'Segoe UI',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,0.85);">
+          <div style="font-size:13px;font-weight:900;color:${getTierColor(d, d.rank===(selectedIdx+1))};">#${d.rank} ${d.name}</div>
+          <div style="font-size:11px;margin-top:4px;">🎯 Match Score: <b>${d.score}%</b> &nbsp;|&nbsp; 🌟 Status: <b>${d.tier}</b></div>
+          <div style="font-size:11px;">☀️ Solar Flux: <b>${d.activeFlux} W/m²</b> &nbsp;|&nbsp; ⛰️ Elev: <b>${d.elev} m</b></div>
+          <div style="font-size:10px;color:#00ff87;margin-top:4px;">Click point to select</div>
         </div>
       `)
       .onPointClick(d => selectSite(d.rank - 1, false))
-      .labelsData([])
-      .labelLat(d => d.lat)
-      .labelLng(d => d.lon)
-      .labelAltitude(d => d.rank === (selectedIdx + 1) ? 0.022 : 0.012)
-      .labelText(d => `#${d.rank} ${d.name.split(' (')[0].split(',')[0]} (${d.score}%)`)
-      .labelSize(d => d.rank === (selectedIdx + 1) ? 1.15 : 0.78)
-      .labelDotRadius(d => d.rank === (selectedIdx + 1) ? 0.48 : 0.30)
-      .labelColor(d => getTierColor(d, d.rank === (selectedIdx + 1)))
-      .labelResolution(3)
-      .onLabelClick(d => selectSite(d.rank - 1, false))
+      // Pulsing neon-green radar beacon ring around the currently selected point
       .ringsData([])
       .ringLat(d => d.lat)
       .ringLng(d => d.lon)
       .ringColor(() => t => `rgba(0, 255, 135, ${1 - t})`)
-      .ringMaxRadius(3.8)
+      .ringMaxRadius(4.4)
       .ringPropagationSpeed(2.0)
-      .ringRepeatPeriod(950);
+      .ringRepeatPeriod(850);
 
     const syncSize = () => {
       if (globeInstance && container.clientWidth > 0 && container.clientHeight > 0) {
@@ -576,7 +573,7 @@ function setMapView(mode) {
       globeInstance.width(container.clientWidth);
       globeInstance.height(container.clientHeight);
     }
-    globeInstance.pointOfView({ lat: s.lat, lng: s.lon, altitude: 1.45 }, 750);
+    globeInstance.pointOfView({ lat: s.lat, lng: s.lon, altitude: 1.35 }, 750);
   }
 }
 
@@ -729,15 +726,15 @@ function selectSite(idx, zoomSurface) {
   document.getElementById('topFluxPill').textContent = `☀️ Earth Flux: ${s.activeFlux} W/m² vs ${t.body}: ${t.solar_flux} W/m²`;
   renderSiteList();
 
-  // FIX: Instantly clear old WebGL points and labels to prevent text stacking/overlapping when changing sites
+  // Highlight selected point & pulsing ring only — zero permanent text labels on the globe
   if (globeInstance) {
-    globeInstance.pointsData([]).labelsData([]);
-    setTimeout(() => {
-      globeInstance.pointsData(rankedSites).labelsData(rankedSites).ringsData([s]);
-    }, 15);
-    globeInstance.pointOfView({ lat: s.lat, lng: s.lon, altitude: 1.45 }, 800);
+    globeInstance
+      .pointsData(rankedSites)
+      .ringsData([s]);
+    globeInstance.pointOfView({ lat: s.lat, lng: s.lon, altitude: 1.35 }, 800);
   }
 
+  // Highlight selected point on 2D map — tooltip appears strictly on cursor hover (permanent: false)
   if (leafletMap && leafletMarkers) {
     leafletMarkers.clearLayers();
     rankedSites.forEach((site, i) => {
@@ -747,8 +744,8 @@ function selectSite(idx, zoomSurface) {
         radius: isSel ? 11 : 7, fillColor: col, color: '#ffffff', weight: isSel ? 2.5 : 1.5, fillOpacity: 0.95
       }).addTo(leafletMarkers);
 
-      marker.bindTooltip(`#${site.rank} ${site.name.split(' (')[0].split(',')[0]} (${site.score}%)`, {
-        permanent: isSel || site.rank <= 10, direction: 'right', offset: [8, 0], className: 'analog-label'
+      marker.bindTooltip(`#${site.rank} ${site.name} (${site.score}% Match • ☀️ ${site.activeFlux} W/m²)`, {
+        permanent: false, direction: 'top', offset: [0, -8], className: 'analog-label'
       });
 
       marker.bindPopup(`
@@ -765,7 +762,7 @@ function selectSite(idx, zoomSurface) {
     if (mapView === '2D' || zoomSurface) {
       if (zoomSurface && mapView !== '2D') setMapView('2D');
       leafletMap.invalidateSize();
-      leafletMap.setView([s.lat, s.lon], zoomSurface ? 14 : 10);
+      leafletMap.setView([s.lat, s.lon], zoomSurface ? 14 : 11);
     }
   }
 
